@@ -7,7 +7,7 @@
 
 static int addr = 0x76;
 
-struct bmp384_calib_param {
+struct bmp384_calib_param {  //Structure qui stocke les paramétres pour ajuster la pression et la temperature.
 
    uint16_t nvm_t1;
    uint16_t nvm_t2;
@@ -57,32 +57,32 @@ struct bmp384_calib_param {
 };
 
 #ifdef i2c_default
-static void bmp_init(){
+static void bmp_init(){   // Fonction qui active les mesures de la pression et de la temperature.
 
  uint8_t buf[] = {0x1B, 0x33};
- i2c_write_blocking(i2c_default, addr, buf, 2, false);
+ i2c_write_blocking(i2c_default, addr, buf, 2, false); // On écrit dans le registe 0x1B la valeur 0011 0011
 
 }
 
 
 
 
-static void bmp_read (uint32_t* temp, uint32_t* press){
+static void bmp_read (uint32_t* temp, uint32_t* press){    // Fonction qui lis la pression et la temperature.
  
  uint8_t buffer[6];
- uint8_t val = 0x04; //acell
+ uint8_t val = 0x04; 
 
- i2c_write_blocking(i2c_default, addr, &val, 1, true); 
+ i2c_write_blocking(i2c_default, addr, &val, 1, true); // On appelle le registre qui a pour adresse 0x04 
 
- i2c_read_blocking(i2c_default, addr, buffer, 6, false);
+ i2c_read_blocking(i2c_default, addr, buffer, 6, false); // On lis les trois octets qui représente la pression et les trois octets qui représente la temperature.
  
- *press = (buffer[2] << 16) | ( buffer[1] << 8) | buffer[0];
+ *press = (buffer[2] << 16) | ( buffer[1] << 8) | buffer[0]; // On range les octets de poids fort et de poids faibles (MSB,LSB,XLSB)
  *temp = (buffer[5] << 16) | (buffer[4] << 8) | buffer[3];
   
  
 }
 
-static float bmp384_temp(uint32_t temp_uncomp, struct bmp384_calib_param* params){
+static float bmp384_temp(uint32_t temp_uncomp, struct bmp384_calib_param* params){ // Cette fonction utilise les paramétres présent ci-dessus dans la struture pour ajuster la valeur de la température
 
 
        float partial_data1;
@@ -99,7 +99,7 @@ static float bmp384_temp(uint32_t temp_uncomp, struct bmp384_calib_param* params
 }
 
 
-static float bmp384_press(uint32_t press_uncomp, struct bmp384_calib_param* params){
+static float bmp384_press(uint32_t press_uncomp, struct bmp384_calib_param* params){  // Cette fonction utilise les paramétres présent ci-dessus dans la struture pour ajuster la pression
 
        float comp_press;
        
@@ -136,7 +136,7 @@ static float bmp384_press(uint32_t press_uncomp, struct bmp384_calib_param* para
 
  
 
-static void bmp384_param(struct bmp384_calib_param* params){
+static void bmp384_param(struct bmp384_calib_param* params){ // On lis les paramètres présent dans le bmp384 pour les stocker dans la structure
 
   uint8_t buff_param[21] = {0};
   uint8_t valP = 0x31;
@@ -202,7 +202,7 @@ static void bmp384_param(struct bmp384_calib_param* params){
  printf("Hello, MPU6050! Reading raw data from registers...\n");
 
   
- i2c_init(i2c_default, 400 * 1000);
+ i2c_init(i2c_default, 400 * 1000); // On déclare les broches configurer pour la communication i2c et sa fréquence 400Khz
  gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
  gpio_set_function(PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C);
  gpio_pull_up(PICO_DEFAULT_I2C_SDA_PIN);
@@ -210,33 +210,33 @@ static void bmp384_param(struct bmp384_calib_param* params){
 
 bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN,GPIO_FUNC_I2C));
 
-uint32_t pressure;
+uint32_t pressure; // on déclare deux variables unsigned de 32 bits pour stocker la température et la pression
 uint32_t temperature;
 
 bmp_init();
 
-struct bmp384_calib_param params;
-bmp384_param(&params);
+struct bmp384_calib_param params; // on lance une instance appelé params
+bmp384_param(&params); // on envoie a la fonction bmp384_param() l'adresse de l'instance de l'object params.
 
-bmp384_param(&params); 
-
-while(1){
-
- bmp_read(&temperature,&pressure);
   
- float comp_t = bmp384_temp(temperature,&params);
- float comp_p = bmp384_press(pressure,&params);
- 
- float altitude = (288/0.0065) * (1-pow(comp_p/101700.0,1/5.255));
- 
- 
+
+while(1){ // Boucle infinie
+
+ bmp_read(&temperature,&pressure); // On lit la pression et la température
   
+ float comp_t = bmp384_temp(temperature,&params); // On appele la fonction bmp384_temp et on stocke la valeur ajusté dans une variable de type float comp_t
+ float comp_p = bmp384_press(pressure,&params); // On appelle la fonction bmp384_press et on stocke la valeur ajusté dans une variable de type float comp_p
+ 
+ float altitude = (288/0.0065) * (1-pow(comp_p/101700.0,1/5.255)); // on calcule l'altitude avec comme point de référence la mer = 0m
+ 
+ 
+ // On affiche la température , la presssion en pascal et l'altitude en m. 
  printf("tem = %f\n",comp_t);
  printf("press = %f\n",comp_p);
  printf("altitude = %f\n",altitude);
  
   
- sleep_ms(500);
+ sleep_ms(500); // on laisse un delay de 0.5 s
 
 }
 
